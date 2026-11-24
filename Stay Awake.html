@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stay Awake</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Stay Awake">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0b0d10">
+<style>
+:root{
+  --bg:#f4f5f7;--card:#ffffff;--text:#14161a;--muted:#6b717c;--border:#e1e4e9;
+  --accent:#16a34a;--accent-ink:#ffffff;--glow:rgba(22,163,74,.35);--danger:#b42318;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b0d10;--card:#14171c;--text:#eef0f3;--muted:#8b93a0;--border:#232830;
+    --accent:#34d27b;--accent-ink:#06210f;--glow:rgba(52,210,123,.35);--danger:#ff8a80;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b0d10;--card:#14171c;--text:#eef0f3;--muted:#8b93a0;--border:#232830;
+  --accent:#34d27b;--accent-ink:#06210f;--glow:rgba(52,210,123,.35);--danger:#ff8a80;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html,body{height:100%;margin:0}
+body{
+  background:var(--bg);color:var(--text);
+  font:16px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
+  -webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;
+  display:flex;flex-direction:column;align-items:center;
+  max-width:440px;margin:0 auto;padding:20px 20px 16px;box-sizing:border-box;
+}
+h1{font-size:15px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin:8px 0 0}
+main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;gap:22px}
+#power{
+  width:180px;height:180px;border-radius:50%;border:2px solid var(--border);
+  background:var(--card);color:var(--muted);display:grid;place-items:center;cursor:pointer;
+  transition:all .25s ease;padding:0;
+}
+#power:active{transform:scale(.96)}
+#power.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);box-shadow:0 0 0 10px var(--glow),0 12px 40px var(--glow);animation:pulse 3s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 18px transparent,0 12px 40px var(--glow)}}
+@media (prefers-reduced-motion:reduce){#power.on{animation:none}}
+#time{font-size:44px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em;min-height:54px}
+#status{color:var(--muted);text-align:center;min-height:22px;margin-top:-14px;padding:0 8px}
+#status.err{color:var(--danger)}
+.chips{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%}
+.chip{
+  background:var(--card);border:1px solid var(--border);color:var(--text);
+  border-radius:14px;padding:13px 0;font:600 16px inherit;font-family:inherit;cursor:pointer;
+}
+.chip[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.row{display:flex;gap:10px;width:100%}
+.btn{
+  flex:1;background:var(--card);border:1px solid var(--border);color:var(--text);
+  border-radius:14px;padding:13px;font:600 15px inherit;font-family:inherit;cursor:pointer;
+}
+.btn:disabled{opacity:.4}
+.info{width:100%;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px;font-size:14px;color:var(--muted);display:flex;justify-content:space-between;gap:12px}
+.info b{color:var(--text);font-weight:600;text-align:right}
+footer{font-size:12.5px;color:var(--muted);text-align:center;max-width:340px;padding-top:12px}
+#dim{position:fixed;inset:0;background:#000;z-index:10;display:none;align-items:center;justify-content:center;color:#2a2a2a;font-size:14px}
+#dim.show{display:flex}
+</style>
+</head>
+<body>
+<h1>Stay Awake</h1>
+<main>
+  <button id="power" aria-pressed="false" aria-label="Toggle keep awake">
+    <svg viewBox="0 0 24 24" width="72" height="72" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" aria-hidden="true"><path d="M12 3v9"/><path d="M6.4 6.6a8 8 0 1 0 11.2 0"/></svg>
+  </button>
+  <div>
+    <div id="time" style="text-align:center">Off</div>
+  </div>
+  <div id="status">Tap to keep your screen awake</div>
+
+  <div class="chips" id="chips">
+    <button class="chip" data-m="0" aria-pressed="true">&infin;</button>
+    <button class="chip" data-m="15" aria-pressed="false">15 min</button>
+    <button class="chip" data-m="30" aria-pressed="false">30 min</button>
+    <button class="chip" data-m="60" aria-pressed="false">1 hr</button>
+    <button class="chip" data-m="120" aria-pressed="false">2 hr</button>
+    <button class="chip" data-m="240" aria-pressed="false">4 hr</button>
+  </div>
+
+  <div class="row"><button class="btn" id="dimBtn" disabled>Dim screen (black)</button></div>
+
+  <div class="info"><span>Method</span><b id="method">&mdash;</b></div>
+</main>
+<footer id="tip">Keep this app open &mdash; iOS only honors wake locks while the page is visible. Install: Share &rarr; Add to Home Screen.</footer>
+<div id="dim">Tap anywhere to exit</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/nosleep/0.12.0/NoSleep.min.js" onerror="void 0"></script>
+<script>
+(function(){
+  var $ = function(id){return document.getElementById(id)};
+  var active=false, held=false, endsAt=null, sentinel=null, noSleep=null, method='', dur=0, timer=null, err='';
+
+  // Restore last duration
+  try{ var s=localStorage.getItem('sa-dur'); if(s!==null) dur=parseInt(s,10)||0; }catch(e){}
+  function markChips(){
+    [].forEach.call(document.querySelectorAll('.chip'),function(c){
+      c.setAttribute('aria-pressed', String(parseInt(c.dataset.m,10)===dur));
+    });
+  }
+  markChips();
+
+  // Home-screen icon generated at runtime
+  try{
+    var c=document.createElement('canvas'); c.width=c.height=180;
+    var x=c.getContext('2d'); x.fillStyle='#0b0d10'; x.fillRect(0,0,180,180);
+    x.strokeStyle='#34d27b'; x.lineWidth=12; x.lineCap='round';
+    x.beginPath(); x.arc(90,98,42,-Math.PI/2+0.65,-Math.PI/2-0.65+Math.PI*2); x.stroke();
+    x.beginPath(); x.moveTo(90,36); x.lineTo(90,88); x.stroke();
+    var l=document.createElement('link'); l.rel='apple-touch-icon'; l.href=c.toDataURL('image/png'); document.head.appendChild(l);
+  }catch(e){}
+
+  var standalone = window.navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+  if(standalone){ $('tip').textContent='Keep this app open \u2014 iOS only honors wake locks while the app is on screen.'; }
+
+  function pad(n){return n<10?'0'+n:''+n}
+  function fmt(ms){
+    var s=Math.max(0,Math.ceil(ms/1000)), h=Math.floor(s/3600), m=Math.floor(s%3600/60), ss=s%60;
+    return h? h+':'+pad(m)+':'+pad(ss) : m+':'+pad(ss);
+  }
+
+  function render(){
+    var p=$('power'); p.classList.toggle('on',active); p.setAttribute('aria-pressed',String(active));
+    $('time').textContent = !active ? 'Off' : (endsAt ? fmt(endsAt-Date.now()) : '\u221E');
+    var st=$('status'); st.classList.toggle('err',!!err);
+    st.textContent = err ? err : !active ? 'Tap to keep your screen awake'
+      : held ? 'Screen will not auto-lock' : 'Paused \u2014 waiting for app to be visible\u2026';
+    $('method').textContent = active ? (method==='native'?'Screen Wake Lock':method==='video'?'Video fallback':'\u2014')
+      : ('wakeLock' in navigator ? 'Wake Lock supported' : 'Fallback only');
+    $('dimBtn').disabled=!active;
+  }
+
+  async function acquire(){
+    err='';
+    if('wakeLock' in navigator){
+      try{
+        sentinel = await navigator.wakeLock.request('screen');
+        sentinel.addEventListener('release',function(){ held=false; sentinel=null; render(); });
+        held=true; method='native'; return true;
+      }catch(e){ sentinel=null; }
+    }
+    try{
+      if(window.NoSleep){
+        noSleep = noSleep || new NoSleep();
+        await noSleep.enable();
+        held=true; method='video'; return true;
+      }
+    }catch(e){}
+    held=false; return false;
+  }
+
+  async function start(){
+    var ok = await acquire();
+    if(!ok){
+      err = "Couldn't enable. Needs iOS 16.4+, and Low Power Mode may block it.";
+      render(); return;
+    }
+    active=true; endsAt = dur ? Date.now()+dur*60000 : null;
+    clearInterval(timer); timer=setInterval(tick,500);
+    render();
+  }
+
+  function stop(){
+    active=false; held=false; endsAt=null; err='';
+    clearInterval(timer);
+    try{ if(sentinel) sentinel.release(); }catch(e){}
+    sentinel=null;
+    try{ if(noSleep) noSleep.disable(); }catch(e){}
+    $('dim').classList.remove('show');
+    render();
+  }
+
+  function tick(){
+    if(endsAt && Date.now()>=endsAt){ stop(); return; }
+    render();
+  }
+
+  $('power').addEventListener('click',function(){ active ? stop() : start(); });
+
+  $('chips').addEventListener('click',function(e){
+    var b=e.target.closest('.chip'); if(!b) return;
+    dur=parseInt(b.dataset.m,10)||0;
+    try{ localStorage.setItem('sa-dur',String(dur)); }catch(e2){}
+    markChips();
+    if(active){ endsAt = dur ? Date.now()+dur*60000 : null; render(); }
+  });
+
+  $('dimBtn').addEventListener('click',function(){ $('dim').classList.add('show'); });
+  $('dim').addEventListener('click',function(){ $('dim').classList.remove('show'); });
+
+  // Wake locks are released when the page is hidden; re-acquire on return
+  document.addEventListener('visibilitychange',function(){
+    if(document.visibilityState==='visible' && active){
+      if(endsAt && Date.now()>=endsAt){ stop(); }
+      else if(!held){ acquire().then(render); }
+    }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
